@@ -26,6 +26,10 @@ except ImportError:
 
 import os
 from collections import deque
+import time
+
+from hailo_apps.python.core.common.hailo_logger import get_logger
+logger = get_logger(__name__)
 
 # Dictionary to store a limited history of tracklet coordinates.
 # The keys will be the track IDs.
@@ -52,6 +56,8 @@ def inference_result_handler(original_frame, infer_results, labels, config_data,
     Returns:
         np.ndarray: Frame with detections or tracks drawn.
     """
+    t_pp_start = time.perf_counter_ns()
+
     # Route to appropriate postprocessing backend
     if onnx_session is not None:
         # ONNX-based postprocessing (HEF outputs or Full-ONNX intermediates -> ONNX postproc)
@@ -63,6 +69,10 @@ def inference_result_handler(original_frame, infer_results, labels, config_data,
         detections = extract_detections(original_frame, infer_results, config_data)
     
     frame_with_detections = draw_detections(detections, original_frame, labels, tracker=tracker, draw_trail=draw_trail)
+    
+    t_pp_end = time.perf_counter_ns()
+    logger.info(f"  Post-processing time: {(t_pp_end - t_pp_start) / 1_000_000:.2f} ms")
+
     return frame_with_detections
 
 
