@@ -169,7 +169,9 @@ def run_inference_pipeline(net, input_src, batch_size, labels, output_dir,
     Initialize queues, HailoAsyncInference instance, and run the inference.
     """
     labels = get_labels(labels)
-    config_data = load_json_file("config.json")
+    app_dir = Path(__file__).resolve().parent
+    config_path = app_dir / "config.json"
+    config_data = load_json_file(str(config_path))
     
     # Load ONNX config and initialize sessions if specified
     onnx_session = None
