@@ -8,6 +8,9 @@ from types import SimpleNamespace
 import numpy as np
 from pathlib import Path
 import collections
+import time
+from functools import partial
+
 try:
     from hailo_apps.python.core.tracker.byte_tracker import BYTETracker
     from hailo_apps.python.core.common.hailo_inference import HailoInfer
@@ -335,14 +338,15 @@ def infer(hailo_inference, input_queue, output_queue, stop_event):
             continue  # Skip processing if stop signal is set
 
         input_batch, preprocessed_batch = next_batch
+        start_ns = time.perf_counter_ns()
 
         # Prepare the callback for handling the inference result
         inference_callback_fn = partial(
             inference_callback,
             input_batch=input_batch,
-            output_queue=output_queue
+            output_queue=output_queue,
+            start_ns=start_ns
         )
-
 
         while len(pending_jobs) >= MAX_ASYNC_INFER_JOBS:
             pending_jobs.popleft().wait(10000)
@@ -360,7 +364,8 @@ def inference_callback(
     completion_info,
     bindings_list: list,
     input_batch: list,
-    output_queue: queue.Queue
+    output_queue: queue.Queue,
+    start_ns: int
 ) -> None:
     """
     infernce callback to handle inference results and push them to a queue.
@@ -371,6 +376,9 @@ def inference_callback(
         input_batch (list): Original input frames.
         output_queue (queue.Queue): Queue to push output results to.
     """
+    elapsed_ms = (time.perf_counter_ns() - start_ns) / 1_000_000
+    logger.info(f"Inference latency: {elapsed_ms:.2f} ms")
+
     if completion_info.exception:
         logger.error(f'Inference error: {completion_info.exception}')
     else:
