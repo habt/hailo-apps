@@ -376,8 +376,8 @@ def inference_callback(
         input_batch (list): Original input frames.
         output_queue (queue.Queue): Queue to push output results to.
     """
-    elapsed_ms = (time.perf_counter_ns() - start_ns) / 1_000_000
-    logger.info(f"Inference latency: {elapsed_ms:.2f} ms")
+    infer_end_ns = time.perf_counter_ns()
+    inference_ms = (infer_end_ns - start_ns) / 1_000_000.0
 
     if completion_info.exception:
         logger.error(f'Inference error: {completion_info.exception}')
@@ -392,7 +392,8 @@ def inference_callback(
                     )
                     for name in bindings._output_names
                 }
-            output_queue.put((input_batch[i], result))
+            timings = {"start_ns": start_ns, "infer_end_ns": infer_end_ns, "inference_ms": inference_ms}
+            output_queue.put((input_batch[i], result, timings))
 
 def main() -> None:
     """

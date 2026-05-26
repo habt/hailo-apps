@@ -40,7 +40,7 @@ trail_length = 30
 TRACKLET_CLASSES = [0, 67]  # PERSON, SMARTPHONE
 
 def inference_result_handler(original_frame, infer_results, labels, config_data, tracker=None, draw_trail=False, 
-                            onnx_config=None, onnx_session=None):
+                            onnx_config=None, onnx_session=None, metadata=None):
     """
     Processes inference results and draw detections (with optional tracking).
 
@@ -71,7 +71,19 @@ def inference_result_handler(original_frame, infer_results, labels, config_data,
     frame_with_detections = draw_detections(detections, original_frame, labels, tracker=tracker, draw_trail=draw_trail)
     
     t_pp_end = time.perf_counter_ns()
-    logger.info(f"  Post-processing time: {(t_pp_end - t_pp_start) / 1_000_000:.2f} ms")
+    postproc_ms = (t_pp_end - t_pp_start) / 1_000_000.0
+
+    # Log inference + postprocess (no draw time). If metadata (from inference) present,
+    # print single-line combined timing; otherwise log postproc only.
+    if metadata and isinstance(metadata, dict):
+        inference_ms = metadata.get("inference_ms")
+        if inference_ms is not None:
+            total_ms = inference_ms + postproc_ms
+            logger.info(f"Infer={inference_ms:.2f} ms  Postproc={postproc_ms:.2f} ms  Total={total_ms:.2f} ms")
+        else:
+            logger.info(f"Postproc={postproc_ms:.2f} ms")
+    else:
+        logger.info(f"Postproc={postproc_ms:.2f} ms")
 
     return frame_with_detections
 
