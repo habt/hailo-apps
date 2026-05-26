@@ -757,10 +757,11 @@ def visualize(
 
             # Run visualization callback
             if metadata:
+                # Pass metadata as a keyword to avoid positional conflicts
                 frame_with_detections = callback(
                     original_frame,
                     inference_result,
-                    metadata[0],
+                    metadata=metadata[0],
                 )
             else:
                 frame_with_detections = callback(original_frame, inference_result)
